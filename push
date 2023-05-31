@@ -1,0 +1,84 @@
+const express = require('express');
+const mongoose = require('mongoose');
+
+const app = express();
+app.use(express.json());
+
+// Connect to MongoDB
+mongoose.connect('mongodb://localhost/election', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+// Create Election schema
+const electionSchema = new mongoose.Schema({
+  state: String,
+  parties: [String],
+  result: String,
+  collationOffice: String,
+  isRigged: Boolean,
+  total: Number,
+});
+
+const Election = mongoose.model('Election', electionSchema);
+
+// Create a new election
+app.post('/elections', async (req, res) => {
+  try {
+    const election = new Election(req.body);
+    await election.save();
+    res.status(201).json(election);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Get all elections
+app.get('/elections', async (req, res) => {
+  try {
+    const elections = await Election.find();
+    res.json(elections);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get a specific election
+app.get('/elections/:id', async (req, res) => {
+  try {
+    const election = await Election.findById(req.params.id);
+    if (!election) throw Error('Election not found');
+    res.json(election);
+  } catch (err) {
+    res.status(404).json({ error: err.message });
+  }
+});
+
+// Update an election
+app.put('/elections/:id', async (req, res) => {
+  try {
+    const election = await Election.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    if (!election) throw Error('Election not found');
+    res.json(election);
+  } catch (err) {
+    res.status(404).json({ error: err.message });
+  }
+});
+
+// Delete an election
+app.delete('/elections/:id', async (req, res) => {
+  try {
+    const election = await Election.findByIdAndDelete(req.params.id);
+    if (!election) throw Error('Election not found');
+    res.json({ message: 'Election deleted successfully' });
+  } catch (err) {
+    res.status(404).json({ error: err.message });
+  }
+});
+
+// Start the server
+app.listen(3000, () => {
+  console.log('Server is running on port 3000');
+});
